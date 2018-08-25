@@ -34,3 +34,6 @@ instance Show Expression where
     show (Multi Add exprs)           = "(" ++ (intercalate " + " $ map show exprs) ++ ")"
     --TODO pretty print Div's in Mul
     show (Multi Mul exprs)           = "(" ++ (intercalate " * " $ map show exprs) ++ ")"
+
+instance Show Equation where
+    show (Equation expr_a expr_b) = show expr_a ++ " = " ++ show expr_b 
