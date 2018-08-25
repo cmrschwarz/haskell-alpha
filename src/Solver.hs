@@ -42,3 +42,6 @@ instance Show Expression where
 
 instance Show Equation where
     show (Equation a b)             = show a ++ " = " ++ show b
+
+isValue (Value _)   = True
+isValue _           = False
