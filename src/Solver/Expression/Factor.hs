@@ -4,7 +4,7 @@ import Solver
 import Data.List
 
 factorOut :: Expression -> [Expression]
-factorOut expr@(Multi Add _)    = map (flip factorOut' expr) factors 
+factorOut expr@(Multi Add _)    = map (flip factorOut' expr) factors
     where
         factors                 = nub $ possibleFactors expr --TODO sort factors by frequency
         possibleFactors expr    = case expr of
@@ -28,4 +28,3 @@ factorIn expr                   = case expr of
         factorInto' factor expr = case expr of
             Multi Mul exprs     -> Multi Mul (factor : exprs)
             _                   -> Multi Mul [factor, expr]
-        

@@ -24,7 +24,7 @@ simplify (Multi op exprs)           = case simplify' exprs of
 simplify (Unary Minus (Unary Minus expr)) = simplify expr
 simplify (Unary Div (Unary Div expr)) = simplify expr
 simplify (Unary op expr)            = Unary op (simplify expr)
-simplify (Binary op x y)            = Binary op (simplify x) (simplify y) 
+simplify (Binary op x y)            = Binary op (simplify x) (simplify y)
 simplify expr                       = expr
 
 constFold :: Expression -> Expression
@@ -45,5 +45,5 @@ constFold (Multi op exprs)
 constFold (Unary Minus (Value x))   = Value (-x)
 constFold (Unary Div (Value x))     = Value (1/x)
 constFold (Unary op expr)           = Unary op (constFold expr)
-constFold (Binary op x y)           = Binary op (constFold x) (constFold y) 
+constFold (Binary op x y)           = Binary op (constFold x) (constFold y)
 constFold expr                      = expr
