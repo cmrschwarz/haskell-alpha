@@ -29,11 +29,7 @@ shuffleMultiAdd left right =
             (l, [v]) -> (Equation (Multi Add l) v)
             (l, r) -> (Equation (Multi Add l) (Multi Add r))
         )
-        (separations left right (\s -> case s of
-                                    Unary Minus f -> f
-                                    f -> Unary Minus f
-                                )
-        )
+        (separations left right (inverseUnary Minus))
 
 shuffleMultiMul :: [Expression] -> [Expression] -> [Equation]
 shuffleMultiMul left right = 
@@ -44,11 +40,7 @@ shuffleMultiMul left right =
             (l, [v]) -> (Equation (Multi Mul l) v)
             (l, r) -> (Equation (Multi Mul l) (Multi Mul r))
         )
-        (separations left right (\s -> case s of
-                                    Unary Div f -> f
-                                    f -> Unary Div f
-                                )
-        )                
+        (separations left right (inverseUnary Div))
 
 --this could be greatly optimized, e.g.  
 --by taking the remaining list length as parameter to stop recursion when (len list) < m

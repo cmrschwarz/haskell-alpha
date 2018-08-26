@@ -43,5 +43,13 @@ instance Show Expression where
 instance Show Equation where
     show (Equation a b)             = show a ++ " = " ++ show b
 
+inverseUnary :: UnaryOperator -> Expression -> Expression
+inverseUnary Minus (Unary Minus expr)   = expr
+inverseUnary Minus expr                 = Unary Minus expr
+inverseUnary Div (Unary Div expr)       = expr
+inverseUnary Div expr                   = Unary Div expr
+--for now we don't need to inverse Factorial or Trigonometric functions
+
+isValue :: Expression -> Bool
 isValue (Value _)   = True
 isValue _           = False

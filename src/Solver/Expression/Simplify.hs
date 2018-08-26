@@ -11,16 +11,12 @@ simplify (Multi op exprs)           = case simplify' exprs of
         exprs'                      -> Multi op exprs'
     where
         simplify' []                = []
-        simplify' (x:xs)            = case elemIndex (inverse x) xs of
+        simplify' (x:xs)            = case elemIndex (inverseUnary inverseOp x) xs of
             Just n                  -> simplify' $ take n xs ++ drop (n + 1) xs
             Nothing                 -> simplify x : simplify' xs
-        inverse expr                = case op of
-            Add                     -> case expr of
-                Unary Minus inner   -> inner
-                _                   -> Unary Minus expr
-            Mul                     -> case expr of
-                Unary Div inner     -> inner
-                _                   -> Unary Div expr
+        inverseOp                   = case op of
+            Add                     -> Minus
+            Mul                     -> Div
 simplify (Unary Minus (Unary Minus expr)) = simplify expr
 simplify (Unary Div (Unary Div expr)) = simplify expr
 simplify (Unary op expr)            = Unary op (simplify expr)
