@@ -3,6 +3,8 @@ module Solver.Backtracker where
 import Data.List
 import Data.Ord
 
+import Debug.Trace
+
 import Solver
 import Solver.Equation.ShuffleEquation
 import Solver.Expression.Factor
@@ -22,17 +24,17 @@ applyOnEquation f (Equation left right) = left' ++ right'
         left'       = map (flip Equation right) (f left)
         right'      = map (Equation left) (f right)
 
-expressionSteps     = [
-        map shorten . factorIn,
-        map shorten . factorOut
+expressionTransforms    = [
+        map simplify . factorIn,
+        map simplify . factorOut
     ]
 
-equationSteps       = map applyOnEquation expressionSteps ++ [
+equationTransforms      = map applyOnEquation expressionTransforms ++ [
         map simplifyEquation . shuffleEquation
     ]
 
 expressionCost :: Expression -> Int
-expressionCost expr = 1 --TODO
+expressionCost expr     = 1 --TODO
 
 equationCost :: Variable -> Equation -> Int
 equationCost var (Equation left right)
@@ -43,20 +45,24 @@ equationCost var (Equation left right)
         rightContainsVar        = contains var right
         isSolved                = isVariable left && leftVar == var && (not rightContainsVar)
 
-searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> a -> Maybe a
-searchSolution cost steps start = searchSolution' (start, cost start, []) []
+searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
+searchSolution cost transforms maxSteps start = searchSolution' (start, startCost, startCost, 0, []) []
     where
-        searchSolution' state@(curr, currCost, previous) queue
-            | currCost < 0      = Just curr
-            | null queue'       = Nothing
+        startCost               = cost start
+        searchSolution' state@(curr, currCost, costSum, steps, previous) queue
+            | currCost < 0      = curr : previous
+            | steps >= maxSteps = []
+            | null queue''      = []
             | otherwise         = searchSolution' nextState queue''
             where
-                seen x          = not $ any (\(_, _, y) -> x `elem` y) queue
-                next            = filter seen $ concat $ map (flip ($) curr) steps
-                costs           = map ((+currCost) . cost) next
-                queue'          = zip3 next costs (repeat (curr : previous))
-                queue''         = filter (/=state) (queue' ++ queue)
+                seen x          = not $ any (\(_, _, _, _, y) -> x `elem` y) queue
+                next            = filter seen $ concat $ map (flip ($) curr) transforms
+                createState x   = (x, xCost, xCost + costSum, steps + 1, curr : previous)
+                    where
+                        xCost   = cost x
+                queue'          = map createState next
+                queue''         = queue' ++ filter (/=state) queue
                 nextState       = minimumBy compareQueueItems queue''
-                compareQueueItems (_, x, xs) (_, y, ys)
-                    | x == y    = compare (length xs) (length ys) --TODO cache length?
+                compareQueueItems (_, _, x, lx, _) (_, _, y, ly, _)
+                    | x == y    = compare lx ly --TODO cache length?
                     | otherwise = compare x y
