@@ -4,24 +4,25 @@ import Solver
 import Data.List
 import Debug.Trace
 
+simplify = constFold . shorten
 
-simplify :: Expression -> Expression
-simplify (Multi op exprs)           = case simplify' exprs of
+shorten :: Expression -> Expression
+shorten (Multi op exprs)           = case shorten' exprs of
         [single]                    -> single
         exprs'                      -> Multi op exprs'
     where
-        simplify' []                = []
-        simplify' (x:xs)            = case elemIndex (inverseUnary inverseOp x) xs of
-            Just n                  -> simplify' $ take n xs ++ drop (n + 1) xs
-            Nothing                 -> simplify x : simplify' xs
+        shorten' []                = []
+        shorten' (x:xs)            = case elemIndex (inverseUnary inverseOp x) xs of
+            Just n                  -> shorten' $ take n xs ++ drop (n + 1) xs
+            Nothing                 -> shorten x : shorten' xs
         inverseOp                   = case op of
             Add                     -> Minus
             Mul                     -> Div
-simplify (Unary Minus (Unary Minus expr)) = simplify expr
-simplify (Unary Div (Unary Div expr)) = simplify expr
-simplify (Unary op expr)            = Unary op (simplify expr)
-simplify (Binary op x y)            = Binary op (simplify x) (simplify y)
-simplify expr                       = expr
+shorten (Unary Minus (Unary Minus expr)) = shorten expr
+shorten (Unary Div (Unary Div expr)) = shorten expr
+shorten (Unary op expr)            = Unary op (shorten expr)
+shorten (Binary op x y)            = Binary op (shorten x) (shorten y)
+shorten expr                       = expr
 
 constFold :: Expression -> Expression
 constFold (Multi op exprs)

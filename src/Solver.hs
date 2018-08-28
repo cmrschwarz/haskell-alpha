@@ -3,6 +3,7 @@ module Solver where
 import Data.Ratio
 import Data.List
 
+type Variable = String
 data Constant = Pi | E
     deriving(Show, Eq)
 data UnaryOperator = Minus | Div | Factorial | Sin | Cos | Tan
@@ -12,7 +13,7 @@ data BinaryOperator = Mod | Exp | Log
 data MultiOperator = Add | Mul
     deriving(Show, Eq)
 data Expression = Value Rational
-                | Variable String
+                | Variable Variable
                 | Constant Constant
                 | Unary UnaryOperator Expression
                 | Binary BinaryOperator Expression Expression
@@ -51,5 +52,15 @@ inverseUnary Div expr                   = Unary Div expr
 --for now we don't need to inverse Factorial or Trigonometric functions
 
 isValue :: Expression -> Bool
-isValue (Value _)   = True
-isValue _           = False
+isValue (Value _)               = True
+isValue _                       = False
+
+isVariable :: Expression -> Bool
+isVariable (Variable _)         = True
+isVariable _                    = False
+
+contains var (Multi _ exprs)    = any (contains var) exprs
+contains var (Binary _ l r)     = contains var l || contains var r
+contains var (Unary _ expr)     = contains var expr
+contains var (Variable name)    = var == name
+contains _ _                    = False
