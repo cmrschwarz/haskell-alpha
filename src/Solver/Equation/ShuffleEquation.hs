@@ -9,38 +9,30 @@ import Data.List
 --roots creating plus minus 
 --saving applied moves
 shuffleEquation:: Equation -> [Equation]
-shuffleEquation equation =
-    case equation of 
-        Equation left right ->
-            case (left, right) of
-                (Multi Add a, Multi Add b) -> shuffleMultiAdd a b
-                (Multi Add a, b) -> shuffleMultiAdd a [b]
-                (a, Multi Add b) -> shuffleMultiAdd [a] b
-                (Multi Mul a, Multi Mul b) -> shuffleMultiMul a b
-                (Multi Mul a, b) -> shuffleMultiMul a [b]
-                (a, Multi Mul b) -> shuffleMultiMul [a] b
+shuffleEquation (Equation left right) =  
+    case (left, right) of
+        (Multi Add a, Multi Add b) -> shuffleMulti Add a b
+        (Multi Add a, b) -> shuffleMulti Add a [b]
+        (a, Multi Add b) -> shuffleMulti Add [a] b
+        _ -> []
+    ++
+    case (left, right) of
+        (Multi Mul a, Multi Mul b) -> shuffleMulti Mul a b
+        (Multi Mul a, b) -> shuffleMulti Mul a [b]
+        (a, Multi Mul b) -> shuffleMulti Mul [a] b
+        _ -> []
                    
-shuffleMultiAdd :: [Expression] -> [Expression] -> [Equation]
-shuffleMultiAdd left right = 
+shuffleMulti :: MultiOperator -> [Expression] -> [Expression] -> [Equation]
+shuffleMulti op left right = 
     map (\x -> case x of
-            ([], r) -> (Equation (Value 0) (Multi Add r))
-            (l, []) -> (Equation (Multi Add l) (Value 0))
-            ([v], r) -> (Equation v (Multi Add r))
-            (l, [v]) -> (Equation (Multi Add l) v)
-            (l, r) -> (Equation (Multi Add l) (Multi Add r))
+            ([], r) -> (Equation (Value 0) (Multi op r))
+            (l, []) -> (Equation (Multi op l) (Value 0))
+            ([v], r) -> (Equation v (Multi op r))
+            (l, [v]) -> (Equation (Multi op l) v)
+            (l, r) -> (Equation (Multi op l) (Multi op r))
         )
-        (separations left right (inverseUnary Minus))
+        (separations left right (inverseUnary (inverseOperator op)))
 
-shuffleMultiMul :: [Expression] -> [Expression] -> [Equation]
-shuffleMultiMul left right = 
-    map (\x -> case x of
-            ([], r) -> (Equation (Value 1) (Multi Mul r))
-            (l, []) -> (Equation (Multi Mul l) (Value 1))
-            ([v], r) -> (Equation v (Multi Mul r))
-            (l, [v]) -> (Equation (Multi Mul l) v)
-            (l, r) -> (Equation (Multi Mul l) (Multi Mul r))
-        )
-        (separations left right (inverseUnary Div))
 
 --this could be greatly optimized, e.g.  
 --by taking the remaining list length as parameter to stop recursion when (len list) < m

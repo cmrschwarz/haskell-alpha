@@ -8,16 +8,14 @@ simplify = constFold . shorten
 
 shorten :: Expression -> Expression
 shorten (Multi op exprs)           = case shorten' exprs of
+        []                          -> Value (neutralElement op)
         [single]                    -> single
         exprs'                      -> Multi op exprs'
     where
         shorten' []                = []
-        shorten' (x:xs)            = case elemIndex (inverseUnary inverseOp x) xs of
+        shorten' (x:xs)            = case elemIndex (inverseUnary (inverseOperator op) x) xs of
             Just n                  -> shorten' $ take n xs ++ drop (n + 1) xs
             Nothing                 -> shorten x : shorten' xs
-        inverseOp                   = case op of
-            Add                     -> Minus
-            Mul                     -> Div
 shorten (Unary Minus (Unary Minus expr)) = shorten expr
 shorten (Unary Div (Unary Div expr)) = shorten expr
 shorten (Unary op expr)            = Unary op (shorten expr)
