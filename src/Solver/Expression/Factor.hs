@@ -1,8 +1,40 @@
-module Solver.Expression.Factor (factorOut, factorIn) where
+module Solver.Expression.Factor (groupFactors, factorOut, factorIn) where
 
 import Solver
 import Data.List
 import Data.Maybe
+
+groupFactors :: Expression -> Expression
+groupFactors (Multi Add exprs)      = Multi Add $ groupFactors' splitted
+    where
+        splitted                    = map splitScale exprs
+        splitScale x                = case x of
+            Multi Mul exprs         -> case partition isValue exprs of
+                ([], factor)        -> ([Value 1], factor)
+                split               -> split
+            _                       -> ([Value 1], [x])
+
+        factorsEqual xs ys
+            | anyNotIn xs ys        = False
+            | anyNotIn ys xs        = False
+            | otherwise             = True
+            where
+                anyNotIn x y        = any (not . (`elem`x)) y
+
+        groupFactors' []            = []
+        groupFactors' ((scale,factor):xs)
+            | null withX            = groupFactors alone : groupFactors' xs
+            | otherwise             = (Multi Mul $ scales : factor) : groupFactors' rest
+            where
+                alone               = if scale == [(Value 1)]
+                    then Multi Mul factor
+                    else Multi Mul $ scale ++ factor
+                (withX, rest)       = partition ((factorsEqual factor) . snd) xs
+                scales              = Multi Add $ concat $ scale : map fst withX
+
+groupFactors (Binary op x y)        = Binary op (groupFactors x) (groupFactors y)
+groupFactors (Unary op expr)        = Unary op (groupFactors expr)
+groupFactors expr                   = expr
 
 factor f (Multi op exprs)       = concat $ map factorPart exprs
     where

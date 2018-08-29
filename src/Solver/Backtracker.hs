@@ -8,6 +8,8 @@ import Solver.Equation.ShuffleEquation
 import Solver.Expression.Factor
 import Solver.Expression.Simplify
 
+simplifyEquation (Equation left right) = Equation (simplify left) (simplify right)
+
 applyOnEquation f (Equation left right) = left' ++ right'
     where
         left'       = map (flip Equation right) (f left)
@@ -20,11 +22,9 @@ straightTransform f expr
         expr'           = f expr
 
 expressionTransforms    = [
-        straightTransform shorten,
-        straightTransform constFold,
-        straightTransform mergeInner,
-        map simplify . factorIn,
-        map simplify . factorOut
+        straightTransform groupFactors,
+        factorIn,
+        factorOut
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [
@@ -50,8 +50,9 @@ equationCost var (Equation left right)
         rightContainsVar        = contains var right
         isSolved                = isVariable left && leftVar == var && (not rightContainsVar)
 
-searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
-searchSolution cost transforms maxSteps start = searchSolution' startState startState []
+searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> (a -> a) -> Int -> a -> [a]
+searchSolution cost transforms simplifier maxSteps start
+        = searchSolution' startState startState []
     where
         startCost               = cost start
         startState              = (start, startCost, startCost, 0, [])
@@ -64,9 +65,10 @@ searchSolution cost transforms maxSteps start = searchSolution' startState start
                 (bestX, bestCost, _, _, bestXS) = best
                 seen x          = not $ any (\(_, _, _, _, y) -> x `elem` y) queue
                 next            = filter seen $ concat $ map (flip ($) curr) transforms
-                createState x   = (x, xCost, xCost + costSum, steps + 1, curr : previous)
+                createState x   = (x', xCost, xCost + costSum, steps + 1, x : curr : previous)
                     where
-                        xCost   = cost x
+                        x'      = simplifier x
+                        xCost   = cost x'
                 queue'          = if steps >= maxSteps
                     then []
                     else map createState next
@@ -80,7 +82,7 @@ searchSolution cost transforms maxSteps start = searchSolution' startState start
                     | otherwise = compare x y
 
 solveExpression :: Int -> Expression -> [Expression]
-solveExpression                 = searchSolution expressionCost expressionTransforms 
+solveExpression                 = searchSolution expressionCost expressionTransforms simplify
 
 solveEquation :: Variable -> Int -> Equation -> [Equation]
 solveEquation var maxSteps eq
@@ -88,7 +90,8 @@ solveEquation var maxSteps eq
     | null solvedRight          = result
     | otherwise                 = solvedRight' ++ result
     where
-        result                  = searchSolution (equationCost var) equationTransforms maxSteps eq
+        searchSolution'         = searchSolution (equationCost var) equationTransforms simplifyEquation
+        result                  = map head $ group $ searchSolution' maxSteps eq
         Equation left right     = head result
         solvedRight             = solveExpression maxSteps right
         solvedRight'            = map (Equation left) (init solvedRight)

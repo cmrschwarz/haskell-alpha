@@ -48,8 +48,8 @@ instance Eq Expression where
     (==) (Binary opX xl xr) (Binary opY yl yr)  = opX == opY && xl == yl && xr == yr
     (==) (Multi opX xs) (Multi opY ys)
         | opX /= opY                            = False
-        | any (not . (`elem`xs)) ys               = False
-        | any (not . (`elem`ys)) xs               = False
+        | any (not . (`elem`xs)) ys             = False
+        | any (not . (`elem`ys)) xs             = False
         | otherwise                             = True
     (==) _ _                                    = False
 
