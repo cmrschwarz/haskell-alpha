@@ -16,16 +16,23 @@ applyOnEquation f (Equation left right) = left' ++ right'
         right'      = map (Equation left) (f right)
 
 expressionTransforms    = [
-        map simplify . factorIn,
-        map simplify . factorOut
+        return . shorten,
+        return . constFold,
+        map shorten . factorIn,
+        map shorten . factorOut
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [
-        map simplifyEquation . shuffleEquation
+        shuffleEquation
     ]
 
 expressionCost :: Expression -> Int
-expressionCost expr             = 1 --TODO
+expressionCost (Value _)        = 0
+expressionCost (Variable _)     = 0
+expressionCost (Constant _)     = 0
+expressionCost (Unary _ expr)   = 1 + expressionCost expr
+expressionCost (Binary _ l r)   = 1 + expressionCost l + expressionCost r
+expressionCost (Multi _ exprs)  = 1 + (sum $ map expressionCost exprs)
 
 equationCost :: Variable -> Equation -> Int
 equationCost var (Equation left right)
@@ -42,8 +49,7 @@ searchSolution cost transforms maxSteps start = searchSolution' startState []
         startCost               = cost start
         startState              = (start, startCost, startCost, 0, [])
         searchSolution' state@(curr, currCost, costSum, steps, previous) queue
-            | currCost < 0      = curr : previous
-            | steps >= maxSteps = []
+            | currCost <= 0     = curr : previous
             | null queue''      = []
             | otherwise         = searchSolution' nextState queue''
             where
@@ -52,9 +58,25 @@ searchSolution cost transforms maxSteps start = searchSolution' startState []
                 createState x   = (x, xCost, xCost + costSum, steps + 1, curr : previous)
                     where
                         xCost   = cost x
-                queue'          = map createState next
+                queue'          = if steps >= maxSteps
+                    then []
+                    else map createState next
                 queue''         = queue' ++ filter (/=state) queue
                 nextState       = minimumBy compareQueueItems queue''
                 compareQueueItems (_, _, x, lx, _) (_, _, y, ly, _)
                     | x == y    = compare lx ly
                     | otherwise = compare x y
+
+solveExpression :: Int -> Expression -> [Expression]
+solveExpression                 = searchSolution expressionCost expressionTransforms 
+
+solveEquation :: Variable -> Int -> Equation -> [Equation]
+solveEquation var maxSteps eq
+    | null result               = []
+    | null solvedRight          = result
+    | otherwise                 = solvedRight' ++ result
+    where
+        result                  = searchSolution (equationCost var) equationTransforms maxSteps eq
+        Equation left right     = head result
+        solvedRight             = solveExpression maxSteps right
+        solvedRight'            = map (Equation left) (init solvedRight)

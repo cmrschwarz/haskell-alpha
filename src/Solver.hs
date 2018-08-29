@@ -67,6 +67,7 @@ isVariable :: Expression -> Bool
 isVariable (Variable _)         = True
 isVariable _                    = False
 
+contains :: Variable -> Expression -> Bool
 contains var (Multi _ exprs)    = any (contains var) exprs
 contains var (Binary _ l r)     = contains var l || contains var r
 contains var (Unary _ expr)     = contains var expr
