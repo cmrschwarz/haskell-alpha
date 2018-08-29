@@ -44,15 +44,17 @@ equationCost var (Equation left right)
         isSolved                = isVariable left && leftVar == var && (not rightContainsVar)
 
 searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
-searchSolution cost transforms maxSteps start = searchSolution' startState []
+searchSolution cost transforms maxSteps start = searchSolution' startState startState []
     where
         startCost               = cost start
         startState              = (start, startCost, startCost, 0, [])
-        searchSolution' state@(curr, currCost, costSum, steps, previous) queue
+        searchSolution' state best queue
             | currCost <= 0     = curr : previous
-            | null queue''      = []
-            | otherwise         = searchSolution' nextState queue''
+            | null queue''      = bestX : bestXS
+            | otherwise         = searchSolution' nextState best' queue''
             where
+                (curr, currCost, costSum, steps, previous) = state
+                (bestX, bestCost, _, _, bestXS) = best
                 seen x          = not $ any (\(_, _, _, _, y) -> x `elem` y) queue
                 next            = filter seen $ concat $ map (flip ($) curr) transforms
                 createState x   = (x, xCost, xCost + costSum, steps + 1, curr : previous)
@@ -62,6 +64,9 @@ searchSolution cost transforms maxSteps start = searchSolution' startState []
                     then []
                     else map createState next
                 queue''         = queue' ++ filter (/=state) queue
+                best'           = if currCost < bestCost
+                    then state
+                    else best
                 nextState       = minimumBy compareQueueItems queue''
                 compareQueueItems (_, _, x, lx, _) (_, _, y, ly, _)
                     | x == y    = compare lx ly
