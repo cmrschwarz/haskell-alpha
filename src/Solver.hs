@@ -18,7 +18,6 @@ data Expression = Value Rational
                 | Unary UnaryOperator Expression
                 | Binary BinaryOperator Expression Expression
                 | Multi MultiOperator [Expression]
-    deriving(Eq)
 data Equation = Equation Expression Expression
     deriving(Eq)
 
@@ -40,6 +39,19 @@ instance Show Expression where
     show (Multi Add exprs)          = "(" ++ (intercalate " + " $ map show exprs) ++ ")"
     --TODO pretty print Div's in Mul
     show (Multi Mul exprs)          = "(" ++ (intercalate " * " $ map show exprs) ++ ")"
+
+instance Eq Expression where
+    (==) (Value x) (Value y)                    = x == y
+    (==) (Variable x) (Variable y)              = x == y
+    (==) (Constant x) (Constant y)              = x == y
+    (==) (Unary opX x) (Unary opY y)            = opX == opY && x == y
+    (==) (Binary opX xl xr) (Binary opY yl yr)  = opX == opY && xl == yl && xr == yr
+    (==) (Multi opX xs) (Multi opY ys)
+        | opX /= opY                            = False
+        | any (not . (`elem`xs)) ys               = False
+        | any (not . (`elem`ys)) xs               = False
+        | otherwise                             = True
+    (==) _ _                                    = False
 
 instance Show Equation where
     show (Equation a b)             = show a ++ " = " ++ show b
