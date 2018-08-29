@@ -25,13 +25,13 @@ shorten expr                        = expr
 
 constFold :: Expression -> Expression
 constFold (Multi op exprs)
-    | null rest'                    = Value folded
-    | null consts                   = Multi op rest'
-    | folded == start               = Multi op rest'
-    | otherwise                     = Multi op ((Value folded) : rest')
+    | null rest                     = Value folded
+    | null consts                   = Multi op rest
+    | folded == start               = Multi op rest
+    | otherwise                     = Multi op ((Value folded) : rest)
     where
-        (consts, rest)              = partition isValue exprs
-        rest'                       = map constFold rest
+        exprs'                      = map constFold exprs
+        (consts, rest)              = partition isValue exprs'
         add (Value x) curr          = curr + x
         mul (Value x) curr          = curr * x
         (folder, start)             = case op of
