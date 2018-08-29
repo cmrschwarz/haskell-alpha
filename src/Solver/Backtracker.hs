@@ -22,7 +22,7 @@ straightTransform f expr
         expr'           = f expr
 
 expressionTransforms    = [
-        straightTransform groupFactors,
+        straightTransform $ constFold . groupFactors,
         factorIn,
         factorOut
     ]
@@ -55,31 +55,36 @@ searchSolution cost transforms simplifier maxSteps start
         = searchSolution' startState startState []
     where
         startCost               = cost start
-        startState              = (start, startCost, startCost, 0, [])
+        startState              = (start, startCost, False, 0, [])
         searchSolution' state best queue
             | currCost <= 0     = curr : previous
-            | null queue''      = bestX : bestXS
-            | otherwise         = searchSolution' nextState best' queue''
+            | visited           = bestX : bestXS
+            | otherwise         = searchSolution' nextState best' queue'
             where
-                (curr, currCost, costSum, steps, previous) = state
+                (curr, currCost, visited, steps, previous) = state
                 (bestX, bestCost, _, _, bestXS) = best
-                seen x          = not $ any (\(_, _, _, _, y) -> x `elem` y) queue
-                next            = filter seen $ concat $ map (flip ($) curr) transforms
-                createState x   = (x', xCost, xCost + costSum, steps + 1, x : curr : previous)
+                fst5 (x, _, _, _, _) = x
+                seen x          = not $ any (\y -> fst5 x == fst5 y) queue
+                next            = concat $ map (flip ($) curr) transforms
+                createState x   = (x', xCost, False, steps + 1, x : curr : previous)
                     where
                         x'      = simplifier x
                         xCost   = cost x'
-                queue'          = if steps >= maxSteps
+                itemsEqual x y  = fst5 x == fst5 y
+                newQueue        = if steps >= maxSteps
                     then []
-                    else map createState next
-                queue''         = queue' ++ filter (/=state) queue
+                    else nubBy itemsEqual $ filter seen $ map createState next
+                oldQueue        = delete state queue
+                queue'          = (curr, currCost, True, steps, previous) : newQueue ++ oldQueue
                 best'           = if currCost < bestCost
                     then state
                     else best
-                nextState       = minimumBy compareQueueItems queue''
-                compareQueueItems (_, _, x, lx, _) (_, _, y, ly, _)
-                    | x == y    = compare lx ly
-                    | otherwise = compare x y
+                nextState       = minimumBy compareQueueItems queue'
+                compareQueueItems (_, x, visitedX, lenX, _) (_, y, visitedY, lenY, _)
+                    | visitedX          = GT
+                    | visitedY          = LT
+                    | x == y            = compare lenX lenY
+                    | otherwise         = compare x y
 
 solveExpression :: Int -> Expression -> [Expression]
 solveExpression                 = searchSolution expressionCost expressionTransforms simplify
