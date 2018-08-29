@@ -8,18 +8,23 @@ import Solver.Equation.ShuffleEquation
 import Solver.Expression.Factor
 import Solver.Expression.Simplify
 
-simplifyEquation (Equation left right) = Equation (simplify left) (simplify right)
-
 applyOnEquation f (Equation left right) = left' ++ right'
     where
         left'       = map (flip Equation right) (f left)
         right'      = map (Equation left) (f right)
 
+straightTransform f expr
+    | expr == expr'     = []
+    | otherwise         = [expr']
+    where
+        expr'           = f expr
+
 expressionTransforms    = [
-        return . shorten,
-        return . constFold,
-        map shorten . factorIn,
-        map shorten . factorOut
+        straightTransform shorten,
+        straightTransform constFold,
+        straightTransform mergeInner,
+        map simplify . factorIn,
+        map simplify . factorOut
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [

@@ -4,7 +4,7 @@ import Solver
 import Data.List
 import Debug.Trace
 
-simplify = constFold . shorten
+simplify = constFold . shorten . mergeInner
 
 shorten :: Expression -> Expression
 shorten (Multi op exprs)            = case shorten' exprs of
@@ -44,3 +44,16 @@ constFold (Unary Div (Value x))     = Value (1/x)
 constFold (Unary op expr)           = Unary op (constFold expr)
 constFold (Binary op x y)           = Binary op (constFold x) (constFold y)
 constFold expr                      = expr
+
+mergeInner :: Expression -> Expression
+mergeInner expr@(Multi op exprs)
+    | null inner                    = Multi op (map mergeInner exprs)
+    | otherwise                     = Multi op exprs'
+    where
+        canInline (Multi op' _)     = op' == op
+        canInline _                 = False
+        retrieveExprs (Multi _ x)   = x
+        (inner, rest)               = partition canInline exprs
+        innerExprs                  = concat $ map retrieveExprs inner
+        exprs'                      = map mergeInner (innerExprs ++ rest)
+mergeInner expr                     = expr
