@@ -7,20 +7,21 @@ import Debug.Trace
 simplify = constFold . shorten
 
 shorten :: Expression -> Expression
-shorten (Multi op exprs)           = case shorten' exprs of
+shorten (Multi op exprs)            = case shorten' exprs of
         []                          -> Value (neutralElement op)
         [single]                    -> single
         exprs'                      -> Multi op exprs'
     where
-        shorten' []                = []
-        shorten' (x:xs)            = case elemIndex (inverseUnary (inverseOperator op) x) xs of
+        inverseOp                   = inverseOperator op
+        shorten' []                 = []
+        shorten' (x:xs)             = case elemIndex (inverseUnary inverseOp x) xs of
             Just n                  -> shorten' $ take n xs ++ drop (n + 1) xs
             Nothing                 -> shorten x : shorten' xs
 shorten (Unary Minus (Unary Minus expr)) = shorten expr
 shorten (Unary Div (Unary Div expr)) = shorten expr
-shorten (Unary op expr)            = Unary op (shorten expr)
-shorten (Binary op x y)            = Binary op (shorten x) (shorten y)
-shorten expr                       = expr
+shorten (Unary op expr)             = Unary op (shorten expr)
+shorten (Binary op x y)             = Binary op (shorten x) (shorten y)
+shorten expr                        = expr
 
 constFold :: Expression -> Expression
 constFold (Multi op exprs)

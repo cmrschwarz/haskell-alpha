@@ -3,19 +3,10 @@ module Solver.Backtracker where
 import Data.List
 import Data.Ord
 
-import Debug.Trace
-
 import Solver
 import Solver.Equation.ShuffleEquation
 import Solver.Expression.Factor
 import Solver.Expression.Simplify
-
-{-
-	        O
-	  1           1
-	2   2       2   2
-   3 3 3 3     3 3 3 3
--}
 
 simplifyEquation (Equation left right) = Equation (simplify left) (simplify right)
 
@@ -34,7 +25,7 @@ equationTransforms      = map applyOnEquation expressionTransforms ++ [
     ]
 
 expressionCost :: Expression -> Int
-expressionCost expr     = 1 --TODO
+expressionCost expr             = 1 --TODO
 
 equationCost :: Variable -> Equation -> Int
 equationCost var (Equation left right)
@@ -46,9 +37,10 @@ equationCost var (Equation left right)
         isSolved                = isVariable left && leftVar == var && (not rightContainsVar)
 
 searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
-searchSolution cost transforms maxSteps start = searchSolution' (start, startCost, startCost, 0, []) []
+searchSolution cost transforms maxSteps start = searchSolution' startState []
     where
         startCost               = cost start
+        startState              = (start, startCost, startCost, 0, [])
         searchSolution' state@(curr, currCost, costSum, steps, previous) queue
             | currCost < 0      = curr : previous
             | steps >= maxSteps = []
@@ -64,5 +56,5 @@ searchSolution cost transforms maxSteps start = searchSolution' (start, startCos
                 queue''         = queue' ++ filter (/=state) queue
                 nextState       = minimumBy compareQueueItems queue''
                 compareQueueItems (_, _, x, lx, _) (_, _, y, ly, _)
-                    | x == y    = compare lx ly --TODO cache length?
+                    | x == y    = compare lx ly
                     | otherwise = compare x y

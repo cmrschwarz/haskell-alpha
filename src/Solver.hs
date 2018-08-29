@@ -51,14 +51,13 @@ inverseUnary Div (Unary Div expr)       = expr
 inverseUnary Div expr                   = Unary Div expr
 --for now we don't need to inverse Factorial or Trigonometric functions
 
-neutralElement op = case op of
-    Add -> 0
-    Mul -> 1
-
 inverseOperator :: MultiOperator -> UnaryOperator
-inverseOperator op = case op of
-    Add -> Minus
-    Mul -> Div
+inverseOperator Add = Minus
+inverseOperator Mul = Div
+
+neutralElement :: MultiOperator -> Rational
+neutralElement Add = 0
+neutralElement Mul = 1
 
 isValue :: Expression -> Bool
 isValue (Value _)               = True
