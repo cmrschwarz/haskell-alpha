@@ -30,9 +30,11 @@ expressionCost :: Expression -> Int
 expressionCost (Value _)        = 0
 expressionCost (Variable _)     = 0
 expressionCost (Constant _)     = 0
+expressionCost (Unary Minus x)  = expressionCost x
+expressionCost (Unary Div x)    = expressionCost x
 expressionCost (Unary _ expr)   = 1 + expressionCost expr
-expressionCost (Binary _ l r)   = 1 + expressionCost l + expressionCost r
-expressionCost (Multi _ exprs)  = 1 + (sum $ map expressionCost exprs)
+expressionCost (Binary _ l r)   = 2 + expressionCost l + expressionCost r
+expressionCost (Multi _ exprs)  = length exprs + (sum $ map expressionCost exprs)
 
 equationCost :: Variable -> Equation -> Int
 equationCost var (Equation left right)

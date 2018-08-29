@@ -28,6 +28,7 @@ constFold (Multi op exprs)
     | null rest                     = Value folded
     | null consts                   = Multi op rest
     | folded == start               = Multi op rest
+    | folded == 0 && op == Mul      = Value 0
     | otherwise                     = Multi op ((Value folded) : rest)
     where
         exprs'                      = map constFold exprs
