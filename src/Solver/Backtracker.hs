@@ -1,4 +1,4 @@
-module Solver.Backtracker where
+module Solver.Backtracker (solveExpression, solveEquation) where
 
 import Data.List
 import Data.Ord

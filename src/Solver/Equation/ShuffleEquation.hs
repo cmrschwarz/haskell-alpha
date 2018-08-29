@@ -1,4 +1,4 @@
-module Solver.Equation.ShuffleEquation where
+module Solver.Equation.ShuffleEquation (shuffleEquation) where
 import Solver
 import Data.List
 
