@@ -31,8 +31,13 @@ shuffleMulti op left right =
             (l, [v]) -> (Equation (Multi op l) v)
             (l, r) -> (Equation (Multi op l) (Multi op r))
         )
-        (separations left right (inverseUnary (inverseOperator op)))
+        (separations (removeZero left) (removeZero right) (inverseUnary (inverseOperator op)))        
 
+removeZero :: [Expression] -> [Expression]
+removeZero exprs = filter notZero exprs
+    where 
+        notZero (Value v) = (v /= 0)
+        notZero _ = True
 
 --this could be greatly optimized, e.g.  
 --by taking the remaining list length as parameter to stop recursion when (len list) < m
@@ -41,7 +46,7 @@ separations :: [a] -> [a] -> (a->a) -> [([a], [a])]
 separations a b switcher = 
     [x |  n<-[0..length elements], x<-(separate_n elements n [] [])]    
     where
-        elements = (map switcher a) ++ b
+        elements = (map switcher a) ++ b 
         separate_n [last_remaining] m left right = 
             case m of  
                 0 -> [(left, right ++ [last_remaining])]
