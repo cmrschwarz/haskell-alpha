@@ -23,6 +23,7 @@ straightTransform f expr
 
 expressionTransforms    = [
         straightTransform $ constFold . groupFactors,
+        ungroupFactors,
         factorIn,
         factorOut
     ]
