@@ -61,20 +61,39 @@ ungroupFactors expr@(Multi Add exprs) = results ++ innerUngrouped
 ungroupFactors expr                 = factor ungroupFactors expr
 
 factorOut :: Expression -> [Expression]
-factorOut expr@(Multi Add _)    = results ++ innerFactored
+factorOut expr@(Multi Add _)        = results ++ innerFactored
     where
-        innerFactored           = factor factorOut expr
-        factors                 = nub $ possibleFactors expr
-        results                 = map (flip factorOut' expr) factors
-        possibleFactors expr    = case expr of
-            Multi Add exprs     -> concat $ map possibleFactors exprs
-            Multi Mul exprs     -> exprs
-            _                   -> [expr]
-        factorOut' factor expr  = case expr of
-            Multi Add exprs     -> Multi Mul [factor, Multi Add $ map (factorOut' factor) exprs]
-            Multi Mul exprs     -> Multi Mul $ (Unary Div factor) : exprs
-            _                   -> Multi Mul [Unary Div factor, expr]
-factorOut expr                  = factor factorOut expr
+        innerFactored               = factor factorOut expr
+        multipleOccurences          = (>1) . length . flip elemIndices factorCandidates
+        factorCandidates            = candidates expr
+        factorCandidates'           = nub $ filter multipleOccurences factorCandidates
+        results                     = concat $ map (flip factorOut' expr) factorCandidates'
+        candidates expr             = case expr of
+            Multi Add exprs         -> concat $ map candidates exprs
+            Multi Mul exprs         -> exprs
+            _                       -> [expr]
+        factors expr                = case expr of
+            Multi Mul exprs         -> exprs
+            _                       -> [expr]
+        factorOut' factor expr      = case expr of
+            Multi Add exprs         -> map (factorOut'' factor) combinations
+                where
+                    (with, without) = partition ((factor`elem`) . factors) exprs
+                    subsetWith n    = (take n with, drop n with ++ without)
+                    combinations    = map subsetWith [2..length with]
+            Multi Mul exprs         -> [Multi Mul $ (Unary Div factor) : exprs]
+            _                       -> [Multi Mul [Unary Div factor, expr]]
+        factorOut'' factor (with, without)
+            | null without          = factored
+            | length with == 1      = undefined
+            | otherwise             = Multi Add (factored : without)
+            where
+                factored            = Multi Mul [factor, Multi Add $ map divFactor with]
+                inverse             = Unary Div factor
+                divFactor expr      = case expr of
+                    Multi Mul exprs -> Multi Mul (inverse : exprs)
+                    _               -> Multi Mul [inverse, expr]
+factorOut expr                      = factor factorOut expr            
 
 factorIn :: Expression -> [Expression]
 factorIn expr@(Multi Mul [a, b])
