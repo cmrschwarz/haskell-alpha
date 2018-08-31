@@ -48,13 +48,21 @@ instance Eq Expression where
     (==) (Binary opX xl xr) (Binary opY yl yr)  = opX == opY && xl == yl && xr == yr
     (==) (Multi opX xs) (Multi opY ys)
         | opX /= opY                            = False
-        | any (not . (`elem`xs)) ys             = False
-        | any (not . (`elem`ys)) xs             = False
-        | otherwise                             = True
+        | otherwise                             = listsEqual xs ys
     (==) _ _                                    = False
 
 instance Show Equation where
     show (Equation a b)             = show a ++ " = " ++ show b
+
+--TODO: think about improving this [O(n^2)]
+listsEqual:: Eq a => [a] -> [a] -> Bool    
+listsEqual xs ys
+    | length xs /= length ys    = False 
+    | anyNotIn xs ys            = False
+    | anyNotIn ys xs            = False
+    | otherwise                 = True
+    where
+        anyNotIn x y            = any (not . (`elem` x)) y
 
 inverseUnary :: UnaryOperator -> Expression -> Expression
 inverseUnary Minus (Unary Minus expr)   = expr

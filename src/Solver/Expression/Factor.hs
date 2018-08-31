@@ -20,14 +20,6 @@ groupFactors :: Expression -> Expression
 groupFactors (Multi Add exprs)      = Multi Add $ groupFactors' splitted
     where
         splitted                    = map splitScale exprs
-
-        factorsEqual xs ys
-            | anyNotIn xs ys        = False
-            | anyNotIn ys xs        = False
-            | otherwise             = True
-            where
-                anyNotIn x y        = any (not . (`elem`x)) y
-
         groupFactors' []            = []
         groupFactors' ((scale,factor):xs)
             | null withX            = groupFactors alone : groupFactors' xs
@@ -36,7 +28,7 @@ groupFactors (Multi Add exprs)      = Multi Add $ groupFactors' splitted
                 alone               = if scale == [(Value 1)]
                     then Multi Mul factor
                     else Multi Mul $ scale ++ factor
-                (withX, rest)       = partition ((factorsEqual factor) . snd) xs
+                (withX, rest)       = partition ((listsEqual factor) . snd) xs
                 scales              = Multi Add $ concat $ scale : map fst withX
 
 groupFactors (Binary op x y)        = Binary op (groupFactors x) (groupFactors y)
