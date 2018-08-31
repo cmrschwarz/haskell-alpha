@@ -4,7 +4,7 @@ import Data.List
 import Data.Ord
 
 import Solver
-import Solver.Equation.ShuffleEquation
+import Solver.Equation.MoveOperands
 import Solver.Expression.Factor
 import Solver.Expression.Simplify
 
@@ -29,7 +29,7 @@ expressionTransforms    = [
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [
-        shuffleEquation
+        moveOperands
     ]
 
 expressionCost :: Expression -> Int
