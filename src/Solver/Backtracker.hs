@@ -22,14 +22,14 @@ straightTransform f expr
         expr'           = f expr
 
 expressionTransforms    = [
-        straightTransform $ constFold . groupFactors,
-        ungroupFactors,
-        factorIn,
-        factorOut
+        straightTransform $ groupFactors . simplify,
+        ungroupFactors . simplify,
+        factorIn . simplify,
+        factorOut . simplify
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [
-        moveOperands
+        map simplifyEquation . moveOperands
     ]
 
 expressionCost :: Expression -> Int
@@ -51,9 +51,10 @@ equationCost var (Equation left right)
         rightContainsVar        = contains var right
         isSolved                = isVariable left && leftVar == var && (not rightContainsVar)
 
-searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> (a -> a) -> Int -> a -> [a]
-searchSolution cost transforms simplifier maxSteps start
-        = searchSolution' startState startState []
+
+searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
+searchSolution cost transforms maxSteps start
+    = searchSolution' startState startState []
     where
         startCost               = cost start
         startState              = (start, startCost, False, 0, [])
@@ -67,10 +68,7 @@ searchSolution cost transforms simplifier maxSteps start
                 fst5 (x, _, _, _, _) = x
                 seen x          = not $ any (\y -> fst5 x == fst5 y) queue
                 next            = concat $ map (flip ($) curr) transforms
-                createState x   = (x', xCost, False, steps + 1, x : curr : previous)
-                    where
-                        x'      = simplifier x
-                        xCost   = cost x'
+                createState x   = (x, cost x, False, steps + 1, x : curr : previous)
                 itemsEqual x y  = fst5 x == fst5 y
                 newQueue        = if steps >= maxSteps
                     then []
@@ -87,8 +85,16 @@ searchSolution cost transforms simplifier maxSteps start
                     | x == y            = compare lenX lenY
                     | otherwise         = compare x y
 
+solveNormalized :: Eq a => a -> (a -> a) -> (a -> [a]) -> [a] 
+solveNormalized x normalizer solver = x' ++ solver normalized
+    where   
+        normalized                  = normalizer x
+        x'                          = if (normalized == x) then [] else [x]
+
 solveExpression :: Int -> Expression -> [Expression]
-solveExpression                 = searchSolution expressionCost expressionTransforms simplify
+solveExpression maxSteps expr   = 
+    solveNormalized expr simplify $searchSolution expressionCost expressionTransforms maxSteps 
+
 
 solveEquation :: Variable -> Int -> Equation -> [Equation]
 solveEquation var maxSteps eq
@@ -96,8 +102,8 @@ solveEquation var maxSteps eq
     | null solvedRight          = result
     | otherwise                 = solvedRight' ++ result
     where
-        searchSolution'         = searchSolution (equationCost var) equationTransforms simplifyEquation
-        result                  = map head $ group $ searchSolution' maxSteps eq
+        searchSolution'         = searchSolution (equationCost var) equationTransforms
+        result                  = solveNormalized eq simplifyEquation $searchSolution' maxSteps 
         Equation left right     = head result
         solvedRight             = solveExpression maxSteps right
         solvedRight'            = map (Equation left) (init solvedRight)
