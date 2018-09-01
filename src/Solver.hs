@@ -46,23 +46,22 @@ instance Eq Expression where
     (==) (Constant x) (Constant y)              = x == y
     (==) (Unary opX x) (Unary opY y)            = opX == opY && x == y
     (==) (Binary opX xl xr) (Binary opY yl yr)  = opX == opY && xl == yl && xr == yr
-    (==) (Multi opX xs) (Multi opY ys)
-        | opX /= opY                            = False
-        | otherwise                             = listsEqual xs ys
+    (==) (Multi opX xs) (Multi opY ys)          = opX == opY && listsEqual xs ys
     (==) _ _                                    = False
 
 instance Show Equation where
     show (Equation a b)             = show a ++ " = " ++ show b
 
 --TODO: think about improving this [O(n^2)]
-listsEqual:: Eq a => [a] -> [a] -> Bool    
+listsEqual :: Eq a => [a] -> [a] -> Bool
 listsEqual xs ys
-    | length xs /= length ys    = False 
-    | anyNotIn xs ys            = False
-    | anyNotIn ys xs            = False
+    | length xs /= length ys    = False
+    | differentCounts xs ys     = False
+    | differentCounts ys xs     = False
     | otherwise                 = True
     where
-        anyNotIn x y            = any (not . (`elem` x)) y
+        count x xs              = length $ elemIndices x xs
+        differentCounts xs ys   = any (\x -> count x xs /= count x ys) xs
 
 inverseUnary :: UnaryOperator -> Expression -> Expression
 inverseUnary Minus (Unary Minus expr)   = expr
