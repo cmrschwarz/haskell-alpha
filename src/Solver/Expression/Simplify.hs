@@ -2,7 +2,6 @@ module Solver.Expression.Simplify where
 
 import Solver
 import Data.List
-import Debug.Trace
 
 simplify = constFold . shorten . mergeInner
 

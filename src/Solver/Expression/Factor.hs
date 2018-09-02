@@ -1,14 +1,9 @@
 module Solver.Expression.Factor (groupFactors, ungroupFactors, factorOut, factorIn) where
 
 import Solver
+import Solver.Expression.Common
 import Data.List
 import Data.Maybe
-
-replaceFirst :: Eq a => [a] -> a -> [a] -> [a]
-replaceFirst [] _ _         = []
-replaceFirst (x:xs) old new = if old == x
-    then new ++ xs
-    else x : replaceFirst xs old new
 
 splitScale x                = case x of
     Multi Mul exprs         -> case partition isValue exprs of
@@ -39,7 +34,7 @@ ungroupFactors :: Expression -> [Expression]
 ungroupFactors expr@(Multi Add exprs) = results ++ innerUngrouped
     where
         results                     = mapMaybe ungroupFactors' exprs
-        innerUngrouped              = factor ungroupFactors expr
+        innerUngrouped              = defaultSolution ungroupFactors expr
         ungroup :: Rational -> [Expression] -> [Expression]
         ungroup 2 factor            = [Multi Mul factor, Multi Mul factor]
         ungroup scale factor        = [Multi Mul factor, Multi Mul (Value (scale - 1) : factor)]
@@ -50,12 +45,12 @@ ungroupFactors expr@(Multi Add exprs) = results ++ innerUngrouped
                 (scale, factor)     = splitScale x
                 [Value scale']      = scale
                 canUngroup          = length scale == 1 && scale' /= 1
-ungroupFactors expr                 = factor ungroupFactors expr
+ungroupFactors expr                 = defaultSolution ungroupFactors expr
 
 factorOut :: Expression -> [Expression]
 factorOut expr@(Multi Add _)        = results ++ innerFactored
     where
-        innerFactored               = factor factorOut expr
+        innerFactored               = defaultSolution factorOut expr
         multipleOccurences          = (>1) . length . flip elemIndices factorCandidates
         factorCandidates            = candidates expr
         factorCandidates'           = nub $ filter multipleOccurences factorCandidates
@@ -85,29 +80,18 @@ factorOut expr@(Multi Add _)        = results ++ innerFactored
                 divFactor expr      = case expr of
                     Multi Mul exprs -> Multi Mul (inverse : exprs)
                     _               -> Multi Mul [inverse, expr]
-factorOut expr                      = factor factorOut expr            
+factorOut expr                      = defaultSolution factorOut expr
 
 factorIn :: Expression -> [Expression]
 factorIn expr@(Multi Mul [a, b])
     | a == b                    = (factorInto a b) ++ innerFactored
     | otherwise                 = (factorInto a b) ++ (factorInto b a) ++ innerFactored
     where
-        innerFactored           = factor factorIn expr
+        innerFactored           = defaultSolution factorIn expr
         factorInto a b          = case a of
             Multi Add exprs     -> [Multi Add $ map (factorInto' b) exprs]
             _                   -> []
         factorInto' factor expr = case expr of
             Multi Mul exprs     -> Multi Mul (factor : exprs)
             _                   -> Multi Mul [factor, expr]
-factorIn expr                   = factor factorIn expr
-
---implements recursive handling (default for all non optimizable expressions)
-factor f (Multi op exprs)       = concat $ map factorPart exprs
-    where
-        factorPart part         = map (Multi op . replaceFirst exprs part . return) (f part)
-factor f (Binary op left right) = left' ++ right'
-    where
-        right'                  = map (Binary op left) $ f right
-        left'                   = map (flip (Binary op) right) $ f left
-factor f (Unary op expr)        = map (Unary op) $ f expr
-factor _ _                      = []
+factorIn expr                   = defaultSolution factorIn expr
