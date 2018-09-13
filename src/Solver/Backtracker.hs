@@ -22,10 +22,10 @@ straightTransform f expr
         expr'           = f expr
 
 expressionTransforms    = [
-        straightTransform $ groupFactors . simplify,
-        ungroupFactors . simplify,
-        factorIn . simplify,
-        factorOut . simplify
+        straightTransform $ simplify . groupFactors,
+        map simplify . ungroupFactors,
+        map simplify . factorIn,
+        map simplify . factorOut
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [
@@ -45,11 +45,13 @@ expressionCost (Multi _ exprs)  = length exprs + (sum $ map expressionCost exprs
 equationCost :: Variable -> Equation -> Int
 equationCost var (Equation left right)
     | isSolved                  = -1
-    | otherwise                 = expressionCost left + expressionCost right
+    | noVarInRight              = accumulatedCost
+    | otherwise                 = 1000 + accumulatedCost
     where
+        accumulatedCost         = expressionCost left + expressionCost right
         Variable leftVar        = left
-        rightContainsVar        = contains var right
-        isSolved                = isVariable left && leftVar == var && (not rightContainsVar)
+        noVarInRight            = not $ contains var right
+        isSolved                = isVariable left && leftVar == var && noVarInRight
 
 
 searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
@@ -85,16 +87,8 @@ searchSolution cost transforms maxSteps start
                     | x == y            = compare lenX lenY
                     | otherwise         = compare x y
 
-solveNormalized :: Eq a => a -> (a -> a) -> (a -> [a]) -> [a] 
-solveNormalized x normalizer solver = x' ++ solver normalized
-    where   
-        normalized                  = normalizer x
-        x'                          = if (normalized == x) then [] else [x]
-
 solveExpression :: Int -> Expression -> [Expression]
-solveExpression maxSteps expr   = 
-    solveNormalized expr simplify $searchSolution expressionCost expressionTransforms maxSteps 
-
+solveExpression maxSteps        = searchSolution expressionCost expressionTransforms maxSteps
 
 solveEquation :: Variable -> Int -> Equation -> [Equation]
 solveEquation var maxSteps eq
@@ -103,7 +97,7 @@ solveEquation var maxSteps eq
     | otherwise                 = solvedRight' ++ result
     where
         searchSolution'         = searchSolution (equationCost var) equationTransforms
-        result                  = solveNormalized eq simplifyEquation $searchSolution' maxSteps 
+        result                  = searchSolution' maxSteps eq
         Equation left right     = head result
         solvedRight             = solveExpression maxSteps right
         solvedRight'            = map (Equation left) (init solvedRight)
