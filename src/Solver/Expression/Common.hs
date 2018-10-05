@@ -20,3 +20,9 @@ defaultSolution f (Binary op l r)   = left' ++ right'
         left'                       = map (flip (Binary op) r) $ f l
 defaultSolution f (Unary op expr)   = map (Unary op) $ f expr
 defaultSolution _ _                 = []
+
+defaultSolution' :: (Expression -> Expression) -> Expression -> Expression
+defaultSolution' f (Multi op exprs) = Multi op $ map f exprs
+defaultSolution' f (Binary op l r)  = Binary op (f l) (f r)
+defaultSolution' f (Unary op expr)  = Unary op $ f expr
+defaultSolution' _ x                = x
