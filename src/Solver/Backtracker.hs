@@ -7,6 +7,7 @@ import Solver
 import Solver.Equation.MoveOperands
 import Solver.Expression.Factor
 import Solver.Expression.Simplify
+import Solver.Expression.Fraction
 
 simplifyEquation (Equation left right) = Equation (simplify left) (simplify right)
 
@@ -25,7 +26,8 @@ expressionTransforms    = [
         straightTransform $ simplify . groupFactors,
         map simplify . ungroupFactors,
         map simplify . factorIn,
-        map simplify . factorOut
+        map simplify . factorOut,
+        map simplify . addFractions
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [
