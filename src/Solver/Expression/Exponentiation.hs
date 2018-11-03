@@ -26,4 +26,4 @@ groupBases (Multi Mul exprs) = Multi Mul $ map groupBases $ groupBases' exprs
             where
                 (base, exp) = splitExp x
                 (sameBase, others) = partition ((==base) . getBase) xs
---groupBases = defaultSolution' groupBases 
+groupBases x = defaultSolution' groupBases x 
