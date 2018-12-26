@@ -27,12 +27,9 @@ tokenize (s:xs) prev_op
     | isDigit s                             = (TValue $ toRational $ read a) : tokenize b False
     | otherwise                             = (TVariable c) : tokenize d False
     where
-        (a, b) = keepWhile isDigit (s:xs) 
-        (c, d) = keepWhile (not . isSpace) (s:xs) 
+        (a, b) = span isDigit (s:xs) 
+        (c, d) = span isAlphaNum (s:xs) 
 tokenize [] prev_op = []
-
-keepWhile :: (a -> Bool) -> [a] -> ([a], [a]) 
-keepWhile f l = (\a b -> (a, drop (length a) b)) (takeWhile f l) l 
 
 isLeftAssociative :: Token -> Bool
 isLeftAssociative (TBinaryOp '^')    = False
@@ -88,4 +85,4 @@ makeExpr (TBinaryOp '-') (y:x:xs) = (Multi Add [x, Unary Minus y]): xs
 makeExpr (TBinaryOp '*') (y:x:xs) = (Multi Mul [x, y]) : xs
 makeExpr (TBinaryOp '/') (y:x:xs) = (Multi Mul [x, Unary Div y]): xs
 makeExpr (TBinaryOp '^') (y:x:xs) = (Binary Exp x y): xs
-
+makeExpr token expressions = error $ "Could not create expression from token " ++ (show token) ++ " in " ++ (show expressions)
