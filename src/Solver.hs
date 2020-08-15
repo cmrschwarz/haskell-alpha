@@ -35,6 +35,7 @@ instance Show Expression where
     show (Unary Factorial expr)     = (show expr) ++ "!"
     show (Unary op expr)            = (show op) ++ "(" ++ (show expr) ++ ")"
     --show (Binary Exp a (Value val))  = --TODO pretty print using "¹²³⁴⁵⁶⁷⁸⁹"
+    show (Binary Exp a b)           = "(" ++ (show a) ++ " ^ " ++ (show b) ++ ")"
     show (Binary op a b)            = "(" ++ (show a) ++ " " ++ (show op) ++ " " ++ (show b) ++ ")"
     show (Multi Add exprs)          = "(" ++ (intercalate " + " $ map show exprs) ++ ")"
     --TODO pretty print Div's in Mul

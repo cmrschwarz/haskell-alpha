@@ -8,13 +8,15 @@ import Data.Maybe
 
 import Debug.Trace
 
+maxSteps = 6
+
 handleSolution solution = do
     let solution' = map head $ group $ reverse solution
     putStrLn $ intercalate "\n" $ map show solution'
 
 handleExpression str = do
     let expr        = parseExpression $ str
-        solution    = solveExpression 6 expr
+        solution    = solveExpression maxSteps expr
 
     handleSolution solution
 
@@ -25,7 +27,7 @@ handleEquation str = do
         leftExpr        = parseExpression left
         rightExpr       = parseExpression $ tail right
         equation        = Equation leftExpr rightExpr
-        solution        = solveEquation "x" 6 equation
+        solution        = solveEquation "x" maxSteps equation
 
     handleSolution solution
 

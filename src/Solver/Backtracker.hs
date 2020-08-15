@@ -70,7 +70,7 @@ searchSolution cost transforms maxSteps start
                 (curr, currCost, visited, steps, previous) = state
                 (bestX, bestCost, _, _, bestXS) = best
                 fst5 (x, _, _, _, _) = x
-                seen x          = not $ any (\y -> fst5 x == fst5 y) queue
+                seen x          = not $ any (itemsEqual x) queue
                 next            = concat $ map (flip ($) curr) transforms
                 createState x   = (x, cost x, False, steps + 1, x : curr : previous)
                 itemsEqual x y  = fst5 x == fst5 y
