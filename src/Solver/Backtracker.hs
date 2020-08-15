@@ -2,6 +2,8 @@ module Solver.Backtracker (solveExpression, solveEquation) where
 
 import Data.List
 import Data.Ord
+import Data.Maybe
+import qualified Data.PSQueue as PQ
 
 import Solver
 import Solver.Equation.MoveOperands
@@ -55,42 +57,45 @@ equationCost var (Equation left right)
         noVarInRight            = not $ contains var right
         isSolved                = isVariable left && leftVar == var && noVarInRight
 
+data SearchState a = SearchState a Int Int [a]
+    deriving(Show)
 
-searchSolution :: Eq a => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
-searchSolution cost transforms maxSteps start
-    = searchSolution' startState startState []
+instance Eq a => Eq (SearchState a) where
+    (==) (SearchState x _ _ _) (SearchState y _ _ _) = x == y
+
+instance Eq a => Ord (SearchState a) where
+    compare (SearchState _ x _ _) (SearchState _ y _ _) = compare x y
+
+applyTransforms cost transforms oldQueue state  = foldl applyTransform oldQueue transforms
     where
-        startCost               = cost start
-        startState              = (start, startCost, False, 0, [])
-        searchSolution' state best queue
-            | currCost <= 0     = curr : previous
-            | visited           = bestX : bestXS
-            | otherwise         = searchSolution' nextState best' queue'
+        SearchState curr _ remSteps steps       = state
+        newSteps                                = curr : steps
+        applyTransform queue f                  = foldl insertExpr queue (f curr)
+        insertExpr queue newExpr                = newQueue
             where
-                (curr, currCost, visited, steps, previous) = state
-                (bestX, bestCost, _, _, bestXS) = best
-                fst5 (x, _, _, _, _) = x
-                seen x          = not $ any (itemsEqual x) queue
-                next            = concat $ map (flip ($) curr) transforms
-                createState x   = (x, cost x, False, steps + 1, x : curr : previous)
-                itemsEqual x y  = fst5 x == fst5 y
-                newQueue        = if steps >= maxSteps
-                    then []
-                    else nubBy itemsEqual $ filter seen $ map createState next
-                oldQueue        = delete state queue
-                queue'          = (curr, currCost, True, steps, previous) : newQueue ++ oldQueue
-                best'           = if currCost < bestCost
-                    then state
-                    else best
-                nextState       = minimumBy compareQueueItems queue'
-                compareQueueItems (_, x, visitedX, lenX, _) (_, y, visitedY, lenY, _)
-                    | visitedX          = GT
-                    | visitedY          = LT
-                    | x == y            = compare lenX lenY
-                    | otherwise         = compare x y
+            newCost                             = cost newExpr
+            newState                            = SearchState newExpr newCost (remSteps - 1) newSteps
+            newQueue                            = if isJust $ PQ.lookup newState queue
+                then queue
+                else PQ.insert newState newCost queue
+
+searchSolution :: (Eq a, Show a) => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
+searchSolution cost transforms maxSteps start   = searchSolution' $ PQ.singleton startState startCost
+    where
+        startCost                               = cost start
+        startState                              = SearchState start startCost maxSteps []
+        searchSolution' queue                   = if cCost <= 0 || cCost >= 99999 || remSteps <= 0
+                then cExpr : cSteps
+                else searchSolution' $ applyTransforms cost transforms queue' curr
+            where
+                currBinding                     = head $ PQ.toAscList queue
+                curr                            = PQ.key currBinding
+                SearchState cExpr _ remSteps cSteps = curr
+                cCost                           = PQ.prio currBinding
+                queue'                          = PQ.adjust (const 99999) curr queue
 
 solveExpression :: Int -> Expression -> [Expression]
-solveExpression maxSteps        = searchSolution expressionCost expressionTransforms maxSteps
+solveExpression maxSteps expr   = searchSolution expressionCost expressionTransforms maxSteps expr
 
 solveEquation :: Variable -> Int -> Equation -> [Equation]
 solveEquation var maxSteps eq
