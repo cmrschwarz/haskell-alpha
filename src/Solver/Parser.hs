@@ -4,7 +4,7 @@ import Solver
 
 import Data.List
 import Data.Char
-import Data.List.Split
+--import Data.List.Split
 
 data Token = TUnaryOp Char
            | TBinaryOp Char
@@ -69,20 +69,22 @@ shuntingYard (TParenClose : ts) ops expr    = shuntingYard ts ops' expr'
                 isParenOpen _          = False
 shuntingYard [] ops expr                    = result 
     where
-        [result] = snd $ collapseWhile (const True) ops expr
+        result      = case snd $ collapseWhile (const True) ops expr of
+            [val]   -> val
+            exprs   -> error $ "Could not collapse expressions " ++ (show exprs) ++ ", no more operators"
 
 collapseWhile :: (Token -> Bool) -> [Token] -> [Expression] -> ([Token], [Expression])
-collapseWhile f (o:os) expr
-    | f o                         = collapseWhile f os (makeExpr o expr)
-    | otherwise                   = ((o:os), expr)
-collapseWhile f [] expr           = ([], expr)
+collapseWhile f tokens@(token:restTokens) exprs
+    | f token                     = collapseWhile f restTokens (makeExpr token exprs)
+    | otherwise                   = (tokens, exprs)
+collapseWhile f [] exprs          = ([], exprs)
 
 makeExpr :: Token -> [Expression] -> [Expression]
-makeExpr (TUnaryOp '+') (x:xs)    = x: xs
-makeExpr (TUnaryOp '-') (x:xs)    = (Unary Minus x): xs
-makeExpr (TBinaryOp '+') (y:x:xs) = (Multi Add [x, y]): xs
-makeExpr (TBinaryOp '-') (y:x:xs) = (Multi Add [x, Unary Minus y]): xs
+makeExpr (TUnaryOp '+') (x:xs)    = x : xs
+makeExpr (TUnaryOp '-') (x:xs)    = (Unary Minus x) : xs
+makeExpr (TBinaryOp '+') (y:x:xs) = (Multi Add [x, y]) : xs
+makeExpr (TBinaryOp '-') (y:x:xs) = (Multi Add [x, Unary Minus y]) : xs
 makeExpr (TBinaryOp '*') (y:x:xs) = (Multi Mul [x, y]) : xs
-makeExpr (TBinaryOp '/') (y:x:xs) = (Multi Mul [x, Unary Div y]): xs
-makeExpr (TBinaryOp '^') (y:x:xs) = (Binary Exp x y): xs
+makeExpr (TBinaryOp '/') (y:x:xs) = (Multi Mul [x, Unary Div y]) : xs
+makeExpr (TBinaryOp '^') (y:x:xs) = (Binary Exp x y) : xs
 makeExpr token expressions = error $ "Could not create expression from token " ++ (show token) ++ " in " ++ (show expressions)
