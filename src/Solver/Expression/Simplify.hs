@@ -1,9 +1,10 @@
 module Solver.Expression.Simplify where
 
 import Solver
+import Solver.Expression.Common
 import Data.List
 
-simplify = constFold . shorten . mergeInner
+simplify = constFold . normalizeMuls . shorten . mergeInner
 
 shorten :: Expression -> Expression
 shorten (Multi op exprs)            = case shorten' exprs of
@@ -58,3 +59,16 @@ mergeInner expr@(Multi op exprs)
         innerExprs                  = concat $ map retrieveExprs inner
         exprs'                      = map mergeInner (innerExprs ++ rest)
 mergeInner expr                     = expr
+
+normalizeMuls :: Expression -> Expression
+normalizeMuls (Multi Mul exprs)     = result
+    where
+        handleElem x                = case x of
+            Unary Minus y           -> (normalizeMuls y, -1)
+            y                       -> (normalizeMuls y, 1)
+        (exprs', signs)             = unzip $ map handleElem exprs
+        sign                        = foldr (*) 1 signs
+        result                      = if sign == -1
+            then Multi Mul $ (Value (-1)) : exprs'
+            else Multi Mul exprs'
+normalizeMuls expr                  = defaultSolution' normalizeMuls expr
