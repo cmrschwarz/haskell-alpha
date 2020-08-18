@@ -10,6 +10,7 @@ import Solver.Equation.MoveOperands
 import Solver.Expression.Factor
 import Solver.Expression.Simplify
 import Solver.Expression.Fraction
+import Solver.Expression.Exponentiation
 
 simplifyEquation (Equation left right) = Equation (simplify left) (simplify right)
 
@@ -25,6 +26,10 @@ straightTransform f expr
         expr'           = f expr
 
 expressionTransforms    = [
+        straightTransform $ simplify . negativeExpToDiv,
+        straightTransform $ simplify . divToNegativeExp,
+        straightTransform $ simplify . groupBases,
+        straightTransform $ simplify . groupExponents,
         straightTransform $ simplify . groupFactors,
         map simplify . ungroupFactors,
         map simplify . factorIn,
