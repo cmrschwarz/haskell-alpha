@@ -1,4 +1,4 @@
-module Solver.Backtracker (solveExpression, solveEquation) where
+module Solver.Backtracker (solveExpression, solveEquation, expressionCost) where
 
 import Data.List
 import Data.Ord
@@ -22,11 +22,12 @@ applyOnEquation f (Equation left right) = left' ++ right'
 straightTransform f expr = [f expr]
 
 expressionTransforms    = [
-        straightTransform $ negativeExpToDiv,
-        straightTransform $ divToNegativeExp,
-        straightTransform $ groupBases,
-        straightTransform $ groupExponents,
-        straightTransform $ groupFactors,
+        straightTransform negativeExpToDiv,
+        straightTransform divToNegativeExp,
+        straightTransform groupBases,
+        straightTransform groupExponents,
+        straightTransform groupFactors,
+        straightTransform normalizeMuls,
         ungroupFactors,
         factorIn,
         factorOut,
@@ -44,7 +45,8 @@ expressionCost (Constant _)     = 3
 expressionCost (Unary Minus x)  = 1 + expressionCost x
 expressionCost (Unary Div x)    = 2 + expressionCost x
 expressionCost (Unary _ expr)   = 3 + expressionCost expr
-expressionCost (Binary _ l r)   = 5 + expressionCost l + expressionCost r
+expressionCost (Binary Exp l r) = 1 + expressionCost l + expressionCost r
+expressionCost (Binary _ l r)   = 2 + expressionCost l + expressionCost r
 expressionCost (Multi _ exprs)  = length exprs + (sum $ map expressionCost exprs)
 
 equationCost :: Variable -> Equation -> Int
@@ -78,10 +80,13 @@ applyTransforms cost fSimplify transforms oldQueue state  = foldl applyTransform
             where
                 simpleExpr                      = fSimplify newExpr
                 newCost                         = cost simpleExpr
+                newPrio                         = if remSteps <= 1
+                    then maxBound :: Int
+                    else newCost
                 newState                        = SearchState simpleExpr newCost (remSteps - 1) newSteps
                 newQueue                        = if isJust $ PQ.lookup newState queue
                     then queue
-                    else PQ.insert newState newCost queue
+                    else PQ.insert newState newPrio queue
 
 searchSolution :: (Eq a, Show a) => (a -> Int) -> (a -> a) -> [(a -> [a])] -> Int -> a -> [a]
 searchSolution cost fSimplify transforms maxSteps start   = searchSolution' $ PQ.singleton startState startCost
@@ -89,7 +94,7 @@ searchSolution cost fSimplify transforms maxSteps start   = searchSolution' $ PQ
         maxPrio                                 = maxBound :: Int
         startCost                               = cost start
         startState                              = SearchState start startCost maxSteps []
-        searchSolution' queue                   = if cCost <= 0 || cPrio == maxPrio || cRemSteps <= 0
+        searchSolution' queue                   = if cCost <= 0 || cPrio == maxPrio || PQ.size queue > 10000
                 then bestExpr : bestSteps
                 else searchSolution' $ applyTransforms cost fSimplify transforms queue' cSearchState
             where

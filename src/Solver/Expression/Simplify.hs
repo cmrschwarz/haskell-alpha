@@ -4,7 +4,7 @@ import Solver
 import Solver.Expression.Common
 import Data.List
 
-simplify = constFold . normalizeMuls . shorten . mergeInner
+simplify = constFold . shorten . mergeInner
 
 shorten :: Expression -> Expression
 shorten (Multi op exprs)            = case shorten' exprs of
@@ -67,8 +67,7 @@ normalizeMuls (Multi Mul exprs)     = result
             Unary Minus y           -> (normalizeMuls y, -1)
             y                       -> (normalizeMuls y, 1)
         (exprs', signs)             = unzip $ map handleElem exprs
-        sign                        = foldr (*) 1 signs
-        result                      = if sign == -1
-            then Multi Mul $ (Value (-1)) : exprs'
+        result                      = if (-1) == foldr (*) 1 signs
+            then Unary Minus $ Multi Mul exprs'
             else Multi Mul exprs'
 normalizeMuls expr                  = defaultSolution' normalizeMuls expr
