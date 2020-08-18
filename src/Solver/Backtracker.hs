@@ -94,7 +94,7 @@ searchSolution cost fSimplify transforms maxSteps start   = searchSolution' $ PQ
         maxPrio                                 = maxBound :: Int
         startCost                               = cost start
         startState                              = SearchState start startCost maxSteps []
-        searchSolution' queue                   = if cCost <= 0 || cPrio == maxPrio || PQ.size queue > 10000
+        searchSolution' queue                   = if cCost <= 0 || cPrio == maxPrio
                 then bestExpr : bestSteps
                 else searchSolution' $ applyTransforms cost fSimplify transforms queue' cSearchState
             where
