@@ -19,6 +19,8 @@ shorten (Multi op exprs)            = case shorten' exprs of
 shorten (Unary Minus (Unary Minus expr)) = shorten expr
 shorten (Unary Div (Unary Div expr)) = shorten expr
 shorten (Unary op expr)             = Unary op (shorten expr)
+shorten (Binary Exp x (Value 0))    = Value 1
+shorten (Binary Exp x (Value 1))    = x
 shorten (Binary op x y)             = Binary op (shorten x) (shorten y)
 shorten expr                        = expr
 
