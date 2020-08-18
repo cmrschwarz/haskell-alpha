@@ -26,19 +26,19 @@ straightTransform f expr
         expr'           = f expr
 
 expressionTransforms    = [
-        straightTransform $ simplify . negativeExpToDiv,
-        straightTransform $ simplify . divToNegativeExp,
-        straightTransform $ simplify . groupBases,
-        straightTransform $ simplify . groupExponents,
-        straightTransform $ simplify . groupFactors,
-        map simplify . ungroupFactors,
-        map simplify . factorIn,
-        map simplify . factorOut,
-        map simplify . addFractions
+        straightTransform $ negativeExpToDiv,
+        straightTransform $ divToNegativeExp,
+        straightTransform $ groupBases,
+        straightTransform $ groupExponents,
+        straightTransform $ groupFactors,
+        ungroupFactors,
+        factorIn,
+        factorOut,
+        addFractions
     ]
 
 equationTransforms      = map applyOnEquation expressionTransforms ++ [
-        map simplifyEquation . moveOperands
+        moveOperands
     ]
 
 expressionCost :: Expression -> Int
@@ -71,27 +71,28 @@ instance Eq a => Eq (SearchState a) where
 instance Eq a => Ord (SearchState a) where
     compare (SearchState _ x _ _) (SearchState _ y _ _) = compare x y
 
-applyTransforms cost transforms oldQueue state  = foldl applyTransform oldQueue transforms
+applyTransforms cost fSimplify transforms oldQueue state  = foldl applyTransform oldQueue transforms
     where
         SearchState curr _ remSteps steps       = state
         newSteps                                = curr : steps
         applyTransform queue f                  = foldl insertExpr queue (f curr)
         insertExpr queue newExpr                = newQueue
             where
-            newCost                             = cost newExpr
-            newState                            = SearchState newExpr newCost (remSteps - 1) newSteps
-            newQueue                            = if isJust $ PQ.lookup newState queue
-                then queue
-                else PQ.insert newState newCost queue
+                simpleExpr                      = fSimplify newExpr
+                newCost                         = cost simpleExpr
+                newState                        = SearchState simpleExpr newCost (remSteps - 1) (newExpr : newSteps)
+                newQueue                        = if isJust $ PQ.lookup newState queue
+                    then queue
+                    else PQ.insert newState newCost queue
 
-searchSolution :: (Eq a, Show a) => (a -> Int) -> [(a -> [a])] -> Int -> a -> [a]
-searchSolution cost transforms maxSteps start   = searchSolution' $ PQ.singleton startState startCost
+searchSolution :: (Eq a, Show a) => (a -> Int) -> (a -> a) -> [(a -> [a])] -> Int -> a -> [a]
+searchSolution cost fSimplify transforms maxSteps start   = searchSolution' $ PQ.singleton startState startCost
     where
         startCost                               = cost start
         startState                              = SearchState start startCost maxSteps []
         searchSolution' queue                   = if cCost <= 0 || cCost >= 99999 || remSteps <= 0
                 then cExpr : cSteps
-                else searchSolution' $ applyTransforms cost transforms queue' curr
+                else searchSolution' $ applyTransforms cost fSimplify transforms queue' curr
             where
                 currBinding                     = head $ PQ.toAscList queue
                 curr                            = PQ.key currBinding
@@ -100,7 +101,7 @@ searchSolution cost transforms maxSteps start   = searchSolution' $ PQ.singleton
                 queue'                          = PQ.adjust (const 99999) curr queue
 
 solveExpression :: Int -> Expression -> [Expression]
-solveExpression maxSteps expr   = searchSolution expressionCost expressionTransforms maxSteps expr
+solveExpression maxSteps expr   = searchSolution expressionCost simplify expressionTransforms maxSteps expr
 
 solveEquation :: Variable -> Int -> Equation -> [Equation]
 solveEquation var maxSteps eq
@@ -108,7 +109,7 @@ solveEquation var maxSteps eq
     | null solvedRight          = result
     | otherwise                 = solvedRight' ++ result
     where
-        searchSolution'         = searchSolution (equationCost var) equationTransforms
+        searchSolution'         = searchSolution (equationCost var) simplifyEquation equationTransforms
         result                  = searchSolution' maxSteps eq
         Equation left right     = head result
         solvedRight             = solveExpression maxSteps right
