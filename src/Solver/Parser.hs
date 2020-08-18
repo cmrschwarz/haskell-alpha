@@ -19,7 +19,7 @@ data Token = TUnaryOp Char
 tokenize :: String -> Bool -> [Token] 
 tokenize (s:xs) prev_op 
     | isSpace s                             = tokenize xs prev_op
-    | s == '('                              = TParenOpen : (tokenize xs False)
+    | s == '('                              = TParenOpen : (tokenize xs True)
     | s == ')'                              = TParenClose : (tokenize xs False)
     | prev_op && (s `elem` ['+', '-'])      = (TUnaryOp s) : (tokenize xs True)
     | not prev_op && (s `elem` ['+', '-'])  = (TBinaryOp s) : (tokenize xs True)
