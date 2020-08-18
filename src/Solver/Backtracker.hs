@@ -19,11 +19,7 @@ applyOnEquation f (Equation left right) = left' ++ right'
         left'       = map (flip Equation right) (f left)
         right'      = map (Equation left) (f right)
 
-straightTransform f expr
-    | expr == expr'     = []
-    | otherwise         = [expr']
-    where
-        expr'           = f expr
+straightTransform f expr = [f expr]
 
 expressionTransforms    = [
         straightTransform $ negativeExpToDiv,
@@ -80,7 +76,7 @@ applyTransforms cost fSimplify transforms oldQueue state  = foldl applyTransform
             where
                 simpleExpr                      = fSimplify newExpr
                 newCost                         = cost simpleExpr
-                newState                        = SearchState simpleExpr newCost (remSteps - 1) (newExpr : newSteps)
+                newState                        = SearchState simpleExpr newCost (remSteps - 1) newSteps
                 newQueue                        = if isJust $ PQ.lookup newState queue
                     then queue
                     else PQ.insert newState newCost queue
@@ -88,17 +84,19 @@ applyTransforms cost fSimplify transforms oldQueue state  = foldl applyTransform
 searchSolution :: (Eq a, Show a) => (a -> Int) -> (a -> a) -> [(a -> [a])] -> Int -> a -> [a]
 searchSolution cost fSimplify transforms maxSteps start   = searchSolution' $ PQ.singleton startState startCost
     where
+        maxPrio                                 = maxBound :: Int
         startCost                               = cost start
         startState                              = SearchState start startCost maxSteps []
-        searchSolution' queue                   = if cCost <= 0 || cCost >= 99999 || remSteps <= 0
-                then cExpr : cSteps
-                else searchSolution' $ applyTransforms cost fSimplify transforms queue' curr
+        searchSolution' queue                   = if cPrio == maxPrio || cRemSteps <= 0
+                then bestExpr: bestSteps
+                else searchSolution' $ applyTransforms cost fSimplify transforms queue' cSearchState
             where
-                currBinding                     = head $ PQ.toAscList queue
-                curr                            = PQ.key currBinding
-                SearchState cExpr _ remSteps cSteps = curr
-                cCost                           = PQ.prio currBinding
-                queue'                          = PQ.adjust (const 99999) curr queue
+                cBinding                            = fromJust $ PQ.findMin queue
+                cSearchState                        = PQ.key cBinding
+                cPrio                               = PQ.prio cBinding
+                SearchState _ _ cRemSteps cSteps    = cSearchState
+                queue'                              = PQ.adjust (const maxPrio) cSearchState queue
+                SearchState bestExpr _ _ bestSteps  = minimum $ PQ.keys queue
 
 solveExpression :: Int -> Expression -> [Expression]
 solveExpression maxSteps expr   = searchSolution expressionCost simplify expressionTransforms maxSteps expr
