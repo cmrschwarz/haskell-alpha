@@ -1,4 +1,4 @@
-module Solver.Expression.Fraction (addFractions) where
+module Solver.Expression.Fraction (addFractions, splitDivs) where
 
 import Solver
 import Solver.Expression.Common
@@ -33,3 +33,7 @@ addFractions expr@(Multi Add exprs) = Multi Mul [numerator, denominator'] : rest
                 extensions          = concat $ zipWith replicate extensionCounts factors
                 extendedNum         = num ++ extensions
 addFractions expr                   = defaultSolution addFractions expr
+
+splitDivs :: Expression -> Expression
+splitDivs (Unary Div (Multi Mul exprs)) = Multi Mul (map (Unary Div) exprs)
+splitDivs x = defaultSolution' splitDivs x

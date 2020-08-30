@@ -28,6 +28,7 @@ expressionTransforms    = [
         straightTransform groupExponents,
         straightTransform groupFactors,
         straightTransform normalizeMuls,
+        straightTransform splitDivs,
         ungroupFactors,
         factorIn,
         factorOut,

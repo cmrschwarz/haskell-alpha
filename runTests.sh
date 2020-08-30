@@ -8,6 +8,11 @@ nocolor='\033[0m'
 successCount=0
 failCount=0
 
+mkdir -p bin/
+cd src/
+ghc -O2 main.hs -outputdir ../bin -o ../bin/haskell-alpha || exit 1
+cd ..
+
 function runTest
 {
     local input=$(head -n 1 "$1")
@@ -15,7 +20,7 @@ function runTest
 
 	tryingText="${yellow}TRYING${nocolor} test $1 formula '$input' expecting '$expected'"
     printf "$tryingText\n"
-	local output=$(src/main "$input")
+	local output=$(bin/haskell-alpha "$input")
 	local status=$?
     local result=$(echo "$output" | tail -n 1)
 
