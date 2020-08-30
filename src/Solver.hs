@@ -31,6 +31,7 @@ instance Show Expression where
     show (Variable name)            = name
     show (Constant Pi)              = "π"
     show (Constant E)               = "e"
+    show (Unary Div expr)           = "(1/(" ++ (show expr) ++ "))"
     show (Unary Minus expr)         = '-' : (show expr)
     show (Unary Factorial expr)     = (show expr) ++ "!"
     show (Unary op expr)            = (show op) ++ "(" ++ (show expr) ++ ")"

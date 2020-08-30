@@ -14,14 +14,15 @@ addFractions :: Expression -> [Expression]
 addFractions expr@(Multi Add exprs) = Multi Mul [numerator, denominator'] : rest
     where
         rest                        = defaultSolution addFractions expr
-        splitNumDenom (Multi Mul x) = partition (not . isDiv) x
+        mapSnd f (x, y)             = (x, map f y)
+        splitNumDenom (Multi Mul x) = mapSnd (\(Unary Div x) -> x) $ partition (not . isDiv) x
         splitNumDenom (Unary Div x) = swap $ splitNumDenom x
         splitNumDenom x             = ([x], [])
         (nums, denoms)              = unzip $ map splitNumDenom exprs
         factors                     = nub $ concat $ denoms
         factorCounts                = map (\xs -> map (length . flip elemIndices xs) factors) denoms
         maxFactorCounts             = map maximum $ transpose factorCounts
-        numerator                   = Multi Add $ zipWith extend nums factorCounts 
+        numerator                   = Multi Add $ zipWith extend nums factorCounts
         denominator                 = concat $ zipWith replicate maxFactorCounts factors
         denominator'                = Unary Div $ Multi Mul $ denominator
         extend num factorCount

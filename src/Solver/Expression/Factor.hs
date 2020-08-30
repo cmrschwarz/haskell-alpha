@@ -31,20 +31,16 @@ groupFactors (Unary op expr)        = Unary op (groupFactors expr)
 groupFactors expr                   = expr
 
 ungroupFactors :: Expression -> [Expression]
-ungroupFactors expr@(Multi Add exprs) = results ++ innerUngrouped
+ungroupFactors expr@(Multi Mul exprs) = if scaleConst > 1
+    then ungrouped : innerUngrouped
+    else innerUngrouped
     where
-        results                     = mapMaybe ungroupFactors' exprs
         innerUngrouped              = defaultSolution ungroupFactors expr
-        ungroup :: Rational -> [Expression] -> [Expression]
-        ungroup 2 factor            = [Multi Mul factor, Multi Mul factor]
-        ungroup scale factor        = [Multi Mul factor, Multi Mul (Value (scale - 1) : factor)]
-        ungroupFactors' x           = if canUngroup
-            then Just $ Multi Add $ replaceFirst exprs x $ ungroup scale' factor
-            else Nothing
-            where
-                (scale, factor)     = splitScale x
-                [Value scale']      = scale
-                canUngroup          = length scale == 1 && scale' /= 1
+        (scale, factor)             = splitScale expr
+        scaleConst                  = foldl (\x (Value y) -> x * y) 1 scale
+        ungrouped                   = if scaleConst == 2
+            then Multi Add [Multi Mul factor, Multi Mul factor]
+            else Multi Add [Multi Mul factor, Multi Mul (Value (scaleConst - 1) : factor)]
 ungroupFactors expr                 = defaultSolution ungroupFactors expr
 
 factorOut :: Expression -> [Expression]
