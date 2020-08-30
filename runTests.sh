@@ -21,7 +21,7 @@ function runTest
 
 
     if [[ "$result" != "$expected" ]] || [[ $status -ne 0 ]]; then
-		printf "\n${red}ERROR${nocolor} running test $1\n"
+		printf "${red}ERROR${nocolor} running test $1\n"
         echo "$output"
 		failCount=$(($failCount + 1))
 	else
