@@ -26,7 +26,9 @@ groupBases (Multi Mul exprs)        = Multi Mul $ map groupBases $ groupBases' e
             where
                 (base, exp)         = splitExp x
                 (sameBase, others)  = partition ((==base) . getBase) xs
-                grouped             = Binary Exp base $ Multi Add $ exp : map getExp sameBase
+                grouped             = case exp : map getExp sameBase of
+                    [Value 1]       -> base
+                    exps            -> Binary Exp base $ Multi Add exps
 groupBases x                        = defaultSolution' groupBases x
 
 groupExponents :: Expression -> Expression

@@ -2,6 +2,7 @@ module Solver where
 
 import Data.Ratio
 import Data.List
+import Data.Ord
 
 type Variable = String
 data Constant = Pi | E
@@ -21,6 +22,21 @@ data Expression = Value Rational
 data Equation = Equation Expression Expression
     deriving(Eq)
 
+exprShowOrder (Value x) (Value y)       = compare x y
+exprShowOrder (Value _) _               = LT
+exprShowOrder _ (Value _)               = GT
+exprShowOrder (Variable x) (Variable y) = compare x y
+exprShowOrder (Variable _) _            = LT
+exprShowOrder _ (Variable _)            = GT
+exprShowOrder (Constant _) (Constant _) = EQ
+exprShowOrder (Constant _) _            = LT
+exprShowOrder _ (Constant _)            = GT
+exprShowOrder (Unary _ x) (Unary _ y)   = exprShowOrder x y
+exprShowOrder (Multi _ x) (Multi _ y)   = comparing length x y
+exprShowOrder _ _                       = EQ
+
+showExprList exprs                      = map show $ sortBy exprShowOrder exprs
+
 instance Show Expression where
     show (Value val)
         | denom == 1                = show numer
@@ -38,9 +54,9 @@ instance Show Expression where
     --show (Binary Exp a (Value val))  = --TODO pretty print using "¹²³⁴⁵⁶⁷⁸⁹"
     show (Binary Exp a b)           = "(" ++ (show a) ++ " ^ " ++ (show b) ++ ")"
     show (Binary op a b)            = "(" ++ (show a) ++ " " ++ (show op) ++ " " ++ (show b) ++ ")"
-    show (Multi Add exprs)          = "(" ++ (intercalate " + " $ map show exprs) ++ ")"
+    show (Multi Add exprs)          = "(" ++ (intercalate " + " $ showExprList exprs) ++ ")"
     --TODO pretty print Div's in Mul
-    show (Multi Mul exprs)          = "(" ++ (intercalate " * " $ map show exprs) ++ ")"
+    show (Multi Mul exprs)          = "(" ++ (intercalate " * " $ showExprList exprs) ++ ")"
 
 instance Eq Expression where
     (==) (Value x) (Value y)                    = x == y
