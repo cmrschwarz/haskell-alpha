@@ -43,6 +43,14 @@ ungroupFactors expr@(Multi Mul exprs) = if scaleConst > 1
             else Multi Add [Multi Mul factor, Multi Mul (Value (scaleConst - 1) : factor)]
 ungroupFactors expr                 = defaultSolution ungroupFactors expr
 
+anyCountPermutations :: [a] -> [a] -> [[a]]
+anyCountPermutations stack []       = [stack]
+anyCountPermutations stack xs       = stack : rest
+    where
+        removeFromXs index          = (\(x, y) -> x ++ tail y) $ splitAt index xs
+        anyCountPermut (i, x)       = anyCountPermutations (x : stack) (removeFromXs i)
+        rest                        = concat $ map anyCountPermut $ zip [0..] xs
+
 factorOut :: Expression -> [Expression]
 factorOut expr@(Multi Add _)        = results ++ innerFactored
     where
@@ -54,16 +62,22 @@ factorOut expr@(Multi Add _)        = results ++ innerFactored
         candidates expr             = case expr of
             Multi Add exprs         -> concat $ map candidates exprs
             Multi Mul exprs         -> exprs
+            Binary Exp x (Value n)  -> [x]
             _                       -> [expr]
         factors expr                = case expr of
             Multi Mul exprs         -> exprs
+            Binary Exp x (Value n)  -> if n > 1
+                then [x, expr]
+                else [expr]
             _                       -> [expr]
         factorOut' factor expr      = case expr of
-            Multi Add exprs         -> map (factorOut'' factor) combinations
+            Multi Add exprs         -> map (factorOut'' factor) combinations''
                 where
                     (with, without) = partition ((factor`elem`) . factors) exprs
-                    subsetWith n    = (take n with, drop n with ++ without)
-                    combinations    = map subsetWith [2..length with]
+                    iCombinations   = filter ((>1) . length) $ anyCountPermutations [] [0 .. length with - 1]
+                    combinations    = map (\indices -> partition ((`elem` indices) . fst) $ zip [0..] with) iCombinations
+                    combinations'   = map (\(x, y) -> (map snd x, map snd y)) combinations
+                    combinations''  = map (\(with', without') -> (with', without' ++ without)) combinations'
             Multi Mul exprs         -> [Multi Mul $ (Unary Div factor) : exprs]
             _                       -> [Multi Mul [Unary Div factor, expr]]
         factorOut'' factor (with, without)

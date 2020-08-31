@@ -15,6 +15,7 @@ getBase x = x
 
 splitExp :: Expression -> (Expression, Expression)
 splitExp (Binary Exp base exp) = (base, exp)
+splitExp (Unary Div x) = (x, Value (-1))
 splitExp x = (x, Value 1)
 
 groupBases :: Expression -> Expression
