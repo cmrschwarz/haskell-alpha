@@ -31,16 +31,19 @@ groupFactors (Unary op expr)        = Unary op (groupFactors expr)
 groupFactors expr                   = expr
 
 ungroupFactors :: Expression -> [Expression]
-ungroupFactors expr@(Multi Mul exprs) = if scaleConst > 1
+ungroupFactors expr@(Multi Mul exprs) = if abs scaleConst > 1
     then ungrouped : innerUngrouped
     else innerUngrouped
     where
         innerUngrouped              = defaultSolution ungroupFactors expr
         (scale, factor)             = splitScale expr
         scaleConst                  = foldl (\x (Value y) -> x * y) 1 scale
-        ungrouped                   = if scaleConst == 2
-            then Multi Add [Multi Mul factor, Multi Mul factor]
-            else Multi Add [Multi Mul factor, Multi Mul (Value (scaleConst - 1) : factor)]
+        ungrouped                   = case scaleConst of
+            2                       -> Multi Add [Multi Mul factor, Multi Mul factor]
+            -2                      -> Multi Add [Multi Mul (Value (-1) : factor), Multi Mul (Value (-1) : factor)]
+            _                       -> if scaleConst > 0
+                then Multi Add [Multi Mul factor, Multi Mul (Value (scaleConst - 1) : factor)]
+                else Multi Add [Multi Mul factor, Multi Mul (Value (scaleConst + 1) : factor)]
 ungroupFactors expr                 = defaultSolution ungroupFactors expr
 
 anyCountPermutations :: [a] -> [a] -> [[a]]
