@@ -4,7 +4,7 @@ import Solver
 import Solver.Expression.Common
 import Data.List
 
-simplify = constFold . shorten . mergeInner
+simplify = constFold . shorten . normalizeSigns . mergeInner
 
 shorten :: Expression -> Expression
 shorten (Multi op exprs)            = case shorten' exprs of
@@ -49,25 +49,33 @@ constFold expr                      = expr
 
 mergeInner :: Expression -> Expression
 mergeInner expr@(Multi op exprs)
-    | null inner                    = Multi op (map mergeInner exprs)
-    | otherwise                     = Multi op exprs'
+    | null inner                            = Multi op (map mergeInner exprs)
+    | otherwise                             = Multi op exprs'
     where
-        canInline (Multi op' _)     = op' == op
-        canInline _                 = False
-        retrieveExprs (Multi _ x)   = x
-        (inner, rest)               = partition canInline exprs
-        innerExprs                  = concat $ map retrieveExprs inner
-        exprs'                      = map mergeInner (innerExprs ++ rest)
-mergeInner expr                     = expr
+        canInline (Multi op' _)             = op' == op
+        canInline (Unary uOp (Multi op' _)) = op == op' && uOp == inverseOperator op
+        canInline _                         = False
+        retrieveExprs (Multi _ x)           = x
+        retrieveExprs (Unary u (Multi _ x)) = map (Unary u) x
+        (inner, rest)                       = partition canInline exprs
+        innerExprs                          = concat $ map retrieveExprs inner
+        exprs'                              = map mergeInner (innerExprs ++ rest)
+mergeInner expr                             = defaultSolution' mergeInner expr
 
-normalizeMuls :: Expression -> Expression
-normalizeMuls (Multi Mul exprs)     = result
+normalizeSigns :: Expression -> Expression
+normalizeSigns (Multi Mul exprs)            = result
     where
-        handleElem x                = case x of
-            Unary Minus y           -> (normalizeMuls y, -1)
-            y                       -> (normalizeMuls y, 1)
-        (exprs', signs)             = unzip $ map handleElem exprs
-        result                      = if (-1) == foldr (*) 1 signs
-            then Unary Minus $ Multi Mul exprs'
+        handleElem x                        = case x of
+            Unary Minus y                   -> (normalizeSigns y, -1)
+            y                               -> (normalizeSigns y, 1)
+        (exprs', signs)                     = unzip $ map handleElem exprs
+        result                              = if (-1) == foldr (*) 1 signs
+            then Multi Mul $ Value (-1) : exprs'
             else Multi Mul exprs'
-normalizeMuls expr                  = defaultSolution' normalizeMuls expr
+normalizeSigns (Multi Add exprs)            = Multi Add $ map handleElem exprs
+    where
+        handleElem x                        = case x of
+            Unary Minus (Multi Mul exprs)   -> Multi Mul $ Value (-1) : map normalizeSigns exprs 
+            expr                            -> normalizeSigns expr
+normalizeSigns (Unary Minus (Multi Mul exprs)) = normalizeSigns $ Multi Mul $ Value (-1) : exprs
+normalizeSigns expr                         = defaultSolution' normalizeSigns expr
