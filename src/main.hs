@@ -8,7 +8,7 @@ import Data.Maybe
 
 import Debug.Trace
 
-maxSteps = 6
+maxSteps = 5
 
 handleSolution solution = do
     let solution' = map head $ group $ reverse solution

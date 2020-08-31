@@ -74,17 +74,20 @@ instance (Show a, Eq a) => Ord (SearchState a) where
 
 applyTransforms cost fSimplify transforms oldQueue state  = foldl applyTransform oldQueue transforms
     where
-        SearchState curr _ remSteps steps       = state
+        SearchState curr oldCost remSteps steps = state
         newSteps                                = curr : steps
         applyTransform queue f                  = foldl insertExpr queue (f curr)
         insertExpr queue newExpr                = newQueue
             where
                 simpleExpr                      = fSimplify newExpr
                 newCost                         = cost simpleExpr
+                newRemSteps                     = if newCost < oldCost
+                    then remSteps
+                    else remSteps - 1
                 newPrio                         = if remSteps <= 1
                     then maxBound :: Int
                     else newCost
-                newState                        = SearchState simpleExpr newCost (remSteps - 1) newSteps
+                newState                        = SearchState simpleExpr newCost newRemSteps newSteps
                 newQueue                        = if isJust $ PQ.lookup newState queue
                     then queue
                     else PQ.insert newState newPrio queue
